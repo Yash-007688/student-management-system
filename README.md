@@ -102,3 +102,7 @@ Pass criteria: minimum **33 marks** in each subject.
 - No third-party libraries needed
 - All UI and app logic by Yash
 - Database layer (`database.py`) is kept separate for easy SQLite integration later
+
+---
+
+> Made by **building_void**
