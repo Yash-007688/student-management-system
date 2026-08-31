@@ -140,8 +140,8 @@ class AddStudentScreen(ttk.Frame):
 
         v_cls = tk.StringVar(); self.inputs["class"]   = v_cls
         v_sec = tk.StringVar(); self.inputs["section"] = v_sec
-        self._make_combo(inner, v_cls, ["9","10","11","12"], 5, 0, "12")
-        self._make_combo(inner, v_sec, ["A","B","C","D"],    5, 2, "A")
+        self._make_combo(inner, v_cls, ["1","2","3","4","5","6","7","8","9","10","11","12"], 5, 0, "1")
+        self._make_combo(inner, v_sec, ["A","B","C"],    5, 2, "A")
 
         # ── Row 3: Date of Birth | Gender ────────────────────────────
         self._make_label(inner, "Date of Birth", 6, 0)

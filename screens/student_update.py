@@ -111,13 +111,13 @@ class UpdateStudentScreen(ttk.Frame):
 
             elif widget_type == "combobox_class":
                 var = tk.StringVar()
-                widget = ttk.Combobox(self.form_card, textvariable=var, values=["11", "12"], state="readonly", width=28)
+                widget = ttk.Combobox(self.form_card, textvariable=var, values=["1","2","3","4","5","6","7","8","9","10","11","12"], state="readonly", width=28)
                 widget.grid(row=row_idx + 1, column=col_offset, sticky="ew", padx=(10 if col_offset > 0 else 0, 10), pady=(0, 12))
                 self.inputs[key] = var
 
             elif widget_type == "combobox_sec":
                 var = tk.StringVar()
-                widget = ttk.Combobox(self.form_card, textvariable=var, values=["A", "B", "C", "D"], state="readonly", width=28)
+                widget = ttk.Combobox(self.form_card, textvariable=var, values=["A", "B", "C"], state="readonly", width=28)
                 widget.grid(row=row_idx + 1, column=col_offset, sticky="ew", padx=(10 if col_offset > 0 else 0, 10), pady=(0, 12))
                 self.inputs[key] = var
 
