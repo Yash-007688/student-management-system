@@ -4,3 +4,4 @@ __pycache__/
 *.pyd
 .env
 *.db
+legacy_gui_backup/
