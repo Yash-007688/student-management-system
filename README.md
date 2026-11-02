@@ -1,108 +1,68 @@
-# Student Management System
-### Class 12 Python Project — by Yash
+# Student Management System — CBSE Class 12 Informatics Practices (IP) Project
+
+An end-to-end Python desktop application created strictly according to the **CBSE Class 12 Informatics Practices (065)** syllabus.
 
 ---
 
-## Project Overview
+## 🎯 Syllabus Topics Covered
 
-A desktop application built using **Python + Tkinter** for managing student records, marks, and results. The app has a clean professional UI and uses an in-memory database (ready to swap with SQLite).
+### 1. Data Handling using Pandas
+- **Series**: Creation (from list, dictionary), Indexing, Slicing, Operations (+, -, *, /), Attributes (`shape`, `size`, `index`, `values`, `ndim`, `empty`).
+- **DataFrame**:
+  - Creation & Inspection (`shape`, `size`, `dtypes`, `index`, `columns`, `head()`, `tail()`)
+  - Indexing & Slicing using `.loc[]` and `.iloc[]`
+  - Iteration using `iterrows()`
+  - Manipulations: Adding/Deleting columns (`drop`), updating values, renaming (`rename`)
+  - Summary functions: `count()`, `sum()`, `mean()`, `min()`, `max()`, `isnull()`
+  - Boolean Filtering & Sorting (`sort_values`)
+- **CSV Data Transfer**: `read_csv()`, `to_csv()` with parameters (`skiprows`, `header`, `index_col`, `nrows`, `names`).
+
+### 2. Data Visualisation using Matplotlib Pyplot
+- **Line Chart**: Progress trend with custom markers, linestyles, colors, and grid.
+- **Bar Chart**: Subject-wise scores with benchmark reference line (`axhline`).
+- **Histogram**: Frequency distribution of marks in score bins.
+- **Scatter Plot**: Correlation analysis (Physics vs Mathematics).
+- **Box Plot**: Subject-wise marks spread and quartiles.
+- **Pie Chart**: Pass / Compartment / Fail distribution with `autopct`, `explode`, shadow, colors.
+- **Multiple Subplots**: 2x2 multi-panel analytical dashboard (`plt.subplots()`).
+
+### 3. Database Management (SQL & MySQL Connectivity)
+- **Keys**: Primary Key, Candidate Key, Alternate Key, Foreign Key.
+- **SQL Clauses**: `DISTINCT`, `WHERE`, `ORDER BY`, `GROUP BY`, `HAVING`.
+- **Aggregate Functions**: `COUNT()`, `AVG()`, `SUM()`, `MIN()`, `MAX()`.
+- **TCL**: `COMMIT`, `ROLLBACK`, `SAVEPOINT`.
+- **Python Connectivity**: `mysql.connector` & Pandas `pd.read_sql()`.
+
+### 4. Societal Impacts & Computer Networks (Viva Revision)
+- **Cyber Safety**: Cybercrime, Phishing, Identity Theft, Password best practices, Digital Footprint.
+- **E-Waste Management**: Hazards and solutions (Reduce, Reuse, Recycle).
+- **Computer Networks**: LAN, MAN, WAN, Topologies (Star, Bus, Tree), Devices (Hub, Switch, Router, Modem, Gateway).
 
 ---
 
-## How to Run
+## 📁 Project Architecture
 
+```text
+school project/
+├── main.py            # Main entry point with role-based dashboards
+├── data_analysis.py   # Pandas Series & DataFrame analysis module
+├── charts.py          # Matplotlib Pyplot visualisation module
+├── mysql_manager.py   # MySQL connector & Python-SQL queries
+├── database.py        # Core database layer (SQLite / SQL engine)
+├── viva_theory.py     # Class 12 IP Theory & Viva guide
+├── students_data.csv  # Auto-synchronized CSV dataset
+└── school.db          # Database file
 ```
+
+---
+
+## 🚀 How to Run
+
+```bash
 python main.py
 ```
 
-**Default Login:**
-- Username: `admin`
-- Password: `admin123`
-
----
-
-## Features
-
-| Screen | What it does |
-|---|---|
-| Login | Secure login with show/hide password |
-| Dashboard | Overview with total students + quick navigation |
-| Add Student | Register new student with form validation |
-| View All Students | Treeview table with live search filter |
-| Search Student | Search by Name, Roll Number, or Class |
-| Update Student | Fetch by Roll No, edit and save changes |
-| Marks Entry | Enter/update subject marks per student |
-| Result / Report | Auto-calculates total, percentage, grade, pass/fail |
-
----
-
-## Project Structure
-
-```
-school project/
-│
-├── main.py              ← Entry point, screen navigation
-├── database.py          ← Data layer (CRUD + marks + results)
-├── ui_styles.py         ← Colors, fonts, ttk styling
-│
-└── screens/
-    ├── __init__.py
-    ├── login.py
-    ├── dashboard.py
-    ├── student_add.py
-    ├── student_view.py
-    ├── student_search.py
-    ├── student_update.py
-    ├── marks_entry.py
-    └── result_view.py
-```
-
----
-
-## Subjects Covered
-
-- Physics
-- Chemistry
-- Mathematics
-- English
-- Computer Science / Informatics Practices
-
----
-
-## Grading System
-
-| Percentage | Grade |
-|---|---|
-| 90% and above | A1 |
-| 80% – 89% | A2 |
-| 70% – 79% | B1 |
-| 60% – 69% | B2 |
-| 50% – 59% | C1 |
-| 40% – 49% | C2 |
-| 33% – 39% | D |
-| Below 33% | E (Needs Improvement) |
-
-Pass criteria: minimum **33 marks** in each subject.
-- 0 failed subjects → **PASSED**
-- 1–2 failed subjects → **COMPARTMENT**
-- 3+ failed subjects → **FAILED**
-
----
-
-## Tech Used
-
-- Python 3
-- Tkinter / ttk (GUI)
-- In-memory data store (replaceable with SQLite)
-
----
-
-## Notes
-
-- No third-party libraries needed
-- All UI and app logic by Yash
-- Database layer (`database.py`) is kept separate for easy SQLite integration later
-
----
-
-> Made by **building_void**
+### Default Login Accounts:
+- **Admin**: `admin` / `admin123`
+- **Teacher**: `teacher` / `teacher123`
+- **Student**: `student` / `student123`
