@@ -1,6 +1,6 @@
 RollNo,Name,Class,Section,Gender,Phone,Physics,Chemistry,Maths,English,CS_IP,Total,Percentage,Grade,Status
 101,Aarav Sharma,12,A,Male,9876543210,88.0,92.0,95.0,85.0,96.0,456.0,91.2,A1,PASSED
 102,Diya Patel,12,A,Female,9812345678,75.0,80.0,78.0,90.0,84.0,407.0,81.4,A2,PASSED
-103,Rohan Verma,12,B,Male,9988776655,78.0,82.0,80.0,85.0,84.0,409.0,81.8,A2,PASSED
+103,Rohan Verma,12,B,Male,9988776655,80.0,0.0,0.0,0.0,0.0,80.0,16.0,E (Needs Improvement),FAILED
 104,Priya Singh,12,A,Female,9899887766,89.0,91.0,94.0,88.0,95.0,457.0,91.4,A1,PASSED
 105,Aditya Roy,12,B,Male,9811223344,82.0,79.0,88.0,90.0,85.0,424.0,84.8,A2,PASSED

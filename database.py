@@ -1,11 +1,11 @@
-﻿"""
+"""
 database.py
 -----------
 SQLite-backed database layer for the Student Management System.
 Handles all DB operations: auth, students, marks, results, fees.
 
 Schema:
-  users       (id, username, password, role, display_name, linked_roll_no)
+  users       (id, username, password, role, display_name, linked_roll_no, assigned_class, assigned_section)
   students    (roll_no, name, class, section, dob, gender, phone, email)
   marks       (roll_no, physics, chemistry, maths, english, cs_ip)
   fees        (roll_no, total_fees, paid, pending, status, last_payment)
@@ -52,7 +52,7 @@ def clear_session():
         _session[k] = None
 
 
-# ── Connection helper ─────────────────────────────────────────────────────────
+# ── Connection helper ────────────────────────────────────────────────────────
 def _get_conn():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -60,7 +60,7 @@ def _get_conn():
     return conn
 
 
-# ── DB Initialisation ─────────────────────────────────────────────────────────
+# ── DB Initialisation ────────────────────────────────────────────────────────
 def init_db():
     """
     Creates all tables if they don't exist and seeds default accounts.
@@ -73,10 +73,10 @@ def init_db():
     c.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id               INTEGER PRIMARY KEY AUTOINCREMENT,
-            username         TEXT    UNIQUE NOT NULL,
-            password         TEXT    NOT NULL,
-            role             TEXT    NOT NULL CHECK(role IN ('ADMIN','TEACHER','STUDENT')),
-            display_name     TEXT    NOT NULL,
+            username         TEXT UNIQUE NOT NULL,
+            password         TEXT NOT NULL,
+            role             TEXT NOT NULL,
+            display_name     TEXT,
             linked_roll_no   TEXT,
             assigned_class   TEXT,
             assigned_section TEXT
@@ -86,14 +86,14 @@ def init_db():
     # students table
     c.execute("""
         CREATE TABLE IF NOT EXISTS students (
-            roll_no  TEXT PRIMARY KEY,
-            name     TEXT NOT NULL,
-            class    TEXT NOT NULL,
-            section  TEXT NOT NULL,
-            dob      TEXT,
-            gender   TEXT,
-            phone    TEXT,
-            email    TEXT
+            roll_no TEXT PRIMARY KEY,
+            name    TEXT NOT NULL,
+            class   TEXT NOT NULL,
+            section TEXT NOT NULL,
+            dob     TEXT,
+            gender  TEXT,
+            phone   TEXT,
+            email   TEXT
         )
     """)
 
@@ -125,63 +125,75 @@ def init_db():
 
     conn.commit()
 
-    # ── Seed default accounts (only if users table is empty) ─────────
-    c.execute("SELECT COUNT(*) FROM users")
-    if c.fetchone()[0] == 0:
-        default_users = [
-            # (username, password, role, display_name, linked_roll_no, assigned_class, assigned_section)
-            ("admin",   "admin123",   "ADMIN",   "Admin",        None,  None, None),
-            ("teacher", "teacher123", "TEACHER", "Class Teacher", None, "12", "A"),
-            ("student", "student123", "STUDENT", "Test Student", "101", None, None),
-        ]
-        c.executemany("""
-            INSERT INTO users
-              (username, password, role, display_name,
-               linked_roll_no, assigned_class, assigned_section)
-            VALUES (?,?,?,?,?,?,?)
-        """, default_users)
+    # ── Seed standard accounts if missing ────────────────────────────────────
+    default_users = [
+        ("admin",   "admin123",   "ADMIN",   "Admin",         None,  None, None),
+        ("teacher", "teacher123", "TEACHER", "Class Teacher",  None,  "12", "A"),
+        ("aarav",   "aarav123",   "STUDENT", "Aarav Sharma",   "101", None, None),
+        ("diya",    "diya123",    "STUDENT", "Diya Patel",     "102", None, None),
+        ("rohan",   "rohan123",   "STUDENT", "Rohan Verma",    "103", None, None),
+        ("priya",   "priya123",   "STUDENT", "Priya Singh",    "104", None, None),
+        ("aditya",  "aditya12",   "STUDENT", "Aditya Roy",     "105", None, None),
+    ]
+    for u in default_users:
+        c.execute("""
+            INSERT INTO users (username, password, role, display_name, linked_roll_no, assigned_class, assigned_section)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(username) DO UPDATE SET
+                password=excluded.password,
+                display_name=excluded.display_name,
+                linked_roll_no=excluded.linked_roll_no,
+                assigned_class=excluded.assigned_class,
+                assigned_section=excluded.assigned_section
+        """, u)
 
-        # Seed sample students
-        sample_students = [
-            ("101", "Aarav Sharma", "12", "A", "2007-04-15", "Male",   "9876543210", "aarav.sharma@example.com"),
-            ("102", "Diya Patel",   "12", "A", "2007-08-22", "Female", "9812345678", "diya.patel@example.com"),
-            ("103", "Rohan Verma",  "12", "B", "2006-11-05", "Male",   "9988776655", "rohan.v@example.com"),
-        ]
-        c.executemany("""
-            INSERT OR IGNORE INTO students
-              (roll_no, name, class, section, dob, gender, phone, email)
+    # Seed sample students if missing
+    sample_students = [
+        ("101", "Aarav Sharma", "12", "A", "2007-04-15", "Male",   "9876543210", "aarav.sharma@example.com"),
+        ("102", "Diya Patel",   "12", "A", "2007-08-22", "Female", "9812345678", "diya.patel@example.com"),
+        ("103", "Rohan Verma",  "12", "B", "2006-11-05", "Male",   "9988776655", "rohan.v@example.com"),
+        ("104", "Priya Singh",  "12", "A", "2007-01-10", "Female", "9899887766", "priya@example.com"),
+        ("105", "Aditya Roy",   "12", "B", "2006-09-12", "Male",   "9811223344", "aditya@example.com"),
+    ]
+    for s in sample_students:
+        c.execute("""
+            INSERT OR IGNORE INTO students (roll_no, name, class, section, dob, gender, phone, email)
             VALUES (?,?,?,?,?,?,?,?)
-        """, sample_students)
+        """, s)
 
-        # Seed sample marks
-        sample_marks = [
-            ("101", 88, 92, 95, 85, 96),
-            ("102", 75, 80, 78, 90, 84),
-        ]
-        c.executemany("""
-            INSERT OR IGNORE INTO marks
-              (roll_no, physics, chemistry, maths, english, cs_ip)
+    # Seed sample marks
+    sample_marks = [
+        ("101", 88, 92, 95, 85, 96),
+        ("102", 75, 80, 78, 90, 84),
+        ("103", 78, 82, 80, 85, 84),
+        ("104", 89, 91, 94, 88, 95),
+        ("105", 82, 79, 88, 90, 85),
+    ]
+    for m in sample_marks:
+        c.execute("""
+            INSERT OR IGNORE INTO marks (roll_no, physics, chemistry, maths, english, cs_ip)
             VALUES (?,?,?,?,?,?)
-        """, sample_marks)
+        """, m)
 
-        # Seed sample fees
-        sample_fees = [
-            ("101", 12000, 12000, 0,     "Paid",    "2026-07-10"),
-            ("102", 12000, 6000,  6000,  "Partial", "2026-06-15"),
-            ("103", 12000, 0,     12000, "Pending", "-"),
-        ]
-        c.executemany("""
-            INSERT OR IGNORE INTO fees
-              (roll_no, total_fees, paid, pending, status, last_payment)
+    # Seed sample fees
+    sample_fees = [
+        ("101", 12000, 12000, 0,     "Paid",    "2026-07-10"),
+        ("102", 12000, 6000,  6000,  "Partial", "2026-06-15"),
+        ("103", 12000, 0,     12000, "Pending", "-"),
+        ("104", 12000, 5000,  7000,  "Partial", "2026-08-20"),
+        ("105", 12000, 8000,  4000,  "Partial", "2026-09-05"),
+    ]
+    for f in sample_fees:
+        c.execute("""
+            INSERT OR IGNORE INTO fees (roll_no, total_fees, paid, pending, status, last_payment)
             VALUES (?,?,?,?,?,?)
-        """, sample_fees)
+        """, f)
 
-        conn.commit()
-
+    conn.commit()
     conn.close()
 
 
-# ── AUTH ──────────────────────────────────────────────────────────────────────
+# ── AUTH & PERMISSIONS ────────────────────────────────────────────────────────
 def verify_login(username, password):
     """
     Authenticates user against SQLite users table.
@@ -203,35 +215,64 @@ def verify_login(username, password):
     return None
 
 
-# ── ROLE GUARD ────────────────────────────────────────────────────────────────
 def require_role(*allowed_roles):
-    """
-    Returns (True, "") if current session role is in allowed_roles.
-    Returns (False, error_message) otherwise.
-    Usage: ok, msg = require_role("ADMIN")
-    """
-    role = _session.get("role")
-    if role in allowed_roles:
+    """Guard: returns (True, '') if current session role is allowed."""
+    cur = _session.get("role")
+    if cur in allowed_roles:
         return True, ""
-    return False, f"Access denied. Required role: {' or '.join(allowed_roles)}. Your role: {role}"
+    return False, f"Access denied. Requires one of: {', '.join(allowed_roles)}."
 
 
-# ── USER MANAGEMENT (ADMIN only) ──────────────────────────────────────────────
+def check_teacher_scope(student_or_roll):
+    """
+    Validates whether the current teacher session has permission for this student.
+    Teachers can ONLY access students in their assigned_class and assigned_section.
+    Admins have universal access.
+    """
+    if _session["role"] == "ADMIN":
+        return True, ""
+    if _session["role"] != "TEACHER":
+        return False, "Access denied. Action restricted to teachers or admin."
+
+    t_cls = str(_session.get("assigned_class", "")).strip()
+    t_sec = str(_session.get("assigned_section", "")).strip()
+
+    if isinstance(student_or_roll, dict):
+        s_cls = str(student_or_roll.get("class", "")).strip()
+        s_sec = str(student_or_roll.get("section", "")).strip()
+    else:
+        s = get_student_by_roll(str(student_or_roll).strip())
+        if not s:
+            return False, f"Student with Roll Number {student_or_roll} does not exist."
+        s_cls = str(s.get("class", "")).strip()
+        s_sec = str(s.get("section", "")).strip()
+
+    if s_cls == t_cls and s_sec == t_sec:
+        return True, ""
+    return False, f"Permission denied: Student belongs to Class {s_cls}-{s_sec}. You are only assigned to Class {t_cls}-{t_sec}."
+
+
+# ── USER MANAGEMENT ───────────────────────────────────────────────────────────
 def get_all_users():
     ok, msg = require_role("ADMIN")
     if not ok:
         return []
     conn = _get_conn()
-    rows = conn.execute("SELECT * FROM users").fetchall()
+    rows = conn.execute("SELECT id, username, role, display_name, linked_roll_no, assigned_class, assigned_section FROM users ORDER BY id").fetchall()
     conn.close()
     return [dict(r) for r in rows]
 
 
-def add_user(username, password, role, display_name,
-             linked_roll_no=None, assigned_class=None, assigned_section=None):
+def add_user(username, password, role, display_name, linked_roll_no=None, assigned_class=None, assigned_section=None):
     ok, msg = require_role("ADMIN")
     if not ok:
         return False, msg
+
+    username = username.strip()
+    password = password.strip()
+    if not username or not password:
+        return False, "Username and password cannot be empty."
+
     try:
         conn = _get_conn()
         conn.execute("""
@@ -252,11 +293,18 @@ def delete_user(username):
     ok, msg = require_role("ADMIN")
     if not ok:
         return False, msg
+    if username.strip().lower() == "admin":
+        return False, "The master 'admin' account cannot be deleted."
+
     conn = _get_conn()
-    conn.execute("DELETE FROM users WHERE username = ?", (username,))
+    c = conn.cursor()
+    c.execute("DELETE FROM users WHERE username = ?", (username.strip(),))
     conn.commit()
+    affected = c.rowcount
     conn.close()
-    return True, f"User '{username}' deleted."
+    if affected:
+        return True, f"User '{username}' deleted successfully."
+    return False, f"User '{username}' not found."
 
 
 # ── STUDENTS CRUD ─────────────────────────────────────────────────────────────
@@ -285,6 +333,11 @@ def add_student(student_data):
             student_data.get("phone", ""),
             student_data.get("email", ""),
         ))
+        # Initialize default pending fee record
+        conn.execute("""
+            INSERT OR IGNORE INTO fees (roll_no, total_fees, paid, pending, status, last_payment)
+            VALUES (?, 12000, 0, 12000, 'Pending', '-')
+        """, (roll,))
         conn.commit()
         conn.close()
         return True, f"Student {student_data.get('name')} added successfully!"
@@ -293,6 +346,15 @@ def add_student(student_data):
 
 
 def get_all_students():
+    """
+    Returns student list scoped by user role.
+    Teachers receive only their assigned class/section.
+    """
+    if _session["role"] == "TEACHER":
+        t_cls = _session.get("assigned_class", "12")
+        t_sec = _session.get("assigned_section", "A")
+        return get_students_by_class(t_cls, t_sec)
+
     conn = _get_conn()
     rows = conn.execute("SELECT * FROM students ORDER BY roll_no").fetchall()
     conn.close()
@@ -325,22 +387,27 @@ def get_student_by_roll(roll_no):
 
 
 def search_students(query, search_by="Name"):
+    """
+    Searches students.
+    Enforces strict teacher scope: Teachers can only view search results from their assigned class/section.
+    """
     q = f"%{str(query).strip().lower()}%"
     conn = _get_conn()
     if search_by == "Roll Number":
-        rows = conn.execute(
-            "SELECT * FROM students WHERE LOWER(roll_no) LIKE ?", (q,)
-        ).fetchall()
+        rows = conn.execute("SELECT * FROM students WHERE LOWER(roll_no) LIKE ?", (q,)).fetchall()
     elif search_by == "Class":
-        rows = conn.execute(
-            "SELECT * FROM students WHERE LOWER(class) LIKE ?", (q,)
-        ).fetchall()
-    else:  # Name (default)
-        rows = conn.execute(
-            "SELECT * FROM students WHERE LOWER(name) LIKE ?", (q,)
-        ).fetchall()
+        rows = conn.execute("SELECT * FROM students WHERE LOWER(class) LIKE ?", (q,)).fetchall()
+    else:
+        rows = conn.execute("SELECT * FROM students WHERE LOWER(name) LIKE ?", (q,)).fetchall()
     conn.close()
-    return [dict(r) for r in rows]
+
+    results = [dict(r) for r in rows]
+    if _session["role"] == "TEACHER":
+        t_cls = str(_session.get("assigned_class", "")).strip()
+        t_sec = str(_session.get("assigned_section", "")).strip()
+        results = [s for s in results if str(s.get("class")).strip() == t_cls and str(s.get("section")).strip() == t_sec]
+
+    return results
 
 
 def update_student(roll_no, updated_data):
@@ -349,6 +416,11 @@ def update_student(roll_no, updated_data):
         return False, msg
 
     roll_str = str(roll_no).strip()
+    # Check teacher boundary
+    allowed, guard_msg = check_teacher_scope(roll_str)
+    if not allowed:
+        return False, guard_msg
+
     conn = _get_conn()
     c = conn.cursor()
     c.execute("""
@@ -394,13 +466,18 @@ def delete_student(roll_no):
 
 # ── MARKS ─────────────────────────────────────────────────────────────────────
 def save_marks(roll_no, marks_dict):
+    """
+    Saves student marks.
+    Enforces teacher scope: A teacher cannot enter/edit marks for students of other classes.
+    """
     ok, msg = require_role("ADMIN", "TEACHER")
     if not ok:
         return False, msg
 
     roll_str = str(roll_no).strip()
-    if not get_student_by_roll(roll_str):
-        return False, f"Student with Roll Number {roll_str} does not exist."
+    allowed, guard_msg = check_teacher_scope(roll_str)
+    if not allowed:
+        return False, guard_msg
 
     conn = _get_conn()
     conn.execute("""
@@ -426,21 +503,32 @@ def save_marks(roll_no, marks_dict):
 
 
 def get_marks(roll_no):
+    roll_str = str(roll_no).strip()
     conn = _get_conn()
     row = conn.execute(
-        "SELECT * FROM marks WHERE roll_no=?", (str(roll_no).strip(),)
+        "SELECT * FROM marks WHERE roll_no=?", (roll_str,)
     ).fetchone()
     conn.close()
     return dict(row) if row else None
 
 
 def get_result(roll_no):
-    """STUDENT role can only access their own roll number."""
+    """
+    Calculates student report card.
+    Strict privacy & scope enforcement:
+    - STUDENT: Can ONLY view their own linked roll number result.
+    - TEACHER: Can ONLY view results of students in their assigned class/section.
+    - ADMIN: Unrestricted access.
+    """
     roll_str = str(roll_no).strip()
 
-    # Students can only view their own result
     if _session["role"] == "STUDENT":
         if _session["linked_roll_no"] != roll_str:
+            return None
+
+    if _session["role"] == "TEACHER":
+        allowed, _ = check_teacher_scope(roll_str)
+        if not allowed:
             return None
 
     student = get_student_by_roll(roll_str)
@@ -488,14 +576,17 @@ def get_result(roll_no):
 
 # ── FEES ──────────────────────────────────────────────────────────────────────
 def get_all_fees():
-    ok, _ = require_role("ADMIN")
-    if not ok:
+    """
+    Returns fees records. Accessible to ADMIN and system analytical modules.
+    STUDENT accounts cannot access all fees.
+    """
+    if _session["role"] == "STUDENT":
         return []
     conn = _get_conn()
     rows = conn.execute("""
         SELECT f.*, s.name, s.class, s.section
         FROM fees f
-        JOIN students s ON f.roll_no = s.roll_no
+        LEFT JOIN students s ON f.roll_no = s.roll_no
         ORDER BY f.roll_no
     """).fetchall()
     conn.close()
@@ -503,21 +594,45 @@ def get_all_fees():
 
 
 def get_fees_by_roll(roll_no):
+    """
+    Returns student fee record.
+    Security Guard:
+    - If current session is STUDENT, they can ONLY view their own fee record.
+    - Any attempt by student to query another roll_no returns None.
+    """
+    roll_str = str(roll_no).strip()
+
+    if _session["role"] == "STUDENT":
+        if _session.get("linked_roll_no") != roll_str:
+            return None
+
     conn = _get_conn()
     row = conn.execute("""
         SELECT f.*, s.name, s.class, s.section
         FROM fees f
         LEFT JOIN students s ON f.roll_no = s.roll_no
         WHERE f.roll_no=?
-    """, (str(roll_no).strip(),)).fetchone()
+    """, (roll_str,)).fetchone()
     conn.close()
     return dict(row) if row else None
 
 
 def update_fees(roll_no, amount_paid):
+    """
+    Records fee payment.
+    Enforces positive payment validation (> 0).
+    """
     ok, msg = require_role("ADMIN")
     if not ok:
         return False, msg
+
+    try:
+        amount_paid = float(amount_paid)
+    except (ValueError, TypeError):
+        return False, "Invalid payment amount. Must be a valid number."
+
+    if amount_paid <= 0:
+        return False, "Invalid payment amount: Payment must be strictly greater than 0."
 
     roll_str = str(roll_no).strip()
     existing = get_fees_by_roll(roll_str)
@@ -525,11 +640,14 @@ def update_fees(roll_no, amount_paid):
 
     conn = _get_conn()
     if existing:
+        if existing["pending"] <= 0:
+            conn.close()
+            return False, f"Fees for Roll Number {roll_str} are already fully paid."
+
         new_paid    = min(existing["paid"] + amount_paid, existing["total_fees"])
-        new_pending = existing["total_fees"] - new_paid
-        if new_pending == 0:    new_status = "Paid"
-        elif new_paid == 0:     new_status = "Pending"
-        else:                   new_status = "Partial"
+        new_pending = max(0.0, existing["total_fees"] - new_paid)
+        new_status  = "Paid" if new_pending == 0 else "Partial"
+
         conn.execute("""
             UPDATE fees
             SET paid=?, pending=?, status=?, last_payment=?
@@ -537,22 +655,22 @@ def update_fees(roll_no, amount_paid):
         """, (new_paid, new_pending, new_status, today, roll_str))
         conn.commit()
         conn.close()
-        return True, "Fees updated successfully."
+        return True, f"Payment of Rs. {amount_paid} recorded. Remaining Due: Rs. {new_pending}."
     else:
         student = get_student_by_roll(roll_str)
         if not student:
             conn.close()
             return False, f"Student with Roll Number {roll_str} not found."
-        paid    = min(amount_paid, 12000)
-        pending = 12000 - paid
-        status  = "Paid" if paid >= 12000 else ("Partial" if paid > 0 else "Pending")
+        paid    = min(amount_paid, 12000.0)
+        pending = max(0.0, 12000.0 - paid)
+        status  = "Paid" if pending == 0 else ("Partial" if paid > 0 else "Pending")
         conn.execute("""
             INSERT INTO fees (roll_no, total_fees, paid, pending, status, last_payment)
             VALUES (?,?,?,?,?,?)
-        """, (roll_str, 12000, paid, pending, status, today))
+        """, (roll_str, 12000.0, paid, pending, status, today))
         conn.commit()
         conn.close()
-        return True, "Fees record created and payment added."
+        return True, f"Fees record created. Payment of Rs. {paid} added."
 
 
 # ── Bootstrap on import ───────────────────────────────────────────────────────

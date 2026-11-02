@@ -2,15 +2,14 @@
 charts.py
 ---------
 Matplotlib Pyplot visual analytics module for CBSE Class 12 IP Project.
-Covers all CBSE IP Data Visualisation topics:
-- Line Chart (trends with markers, linestyles, colors)
-- Bar Chart (vertical and horizontal barh)
-- Histogram (marks frequency distribution)
-- Scatter Plot (Physics vs Maths correlation)
-- Pie Chart (percentage distribution with autopct, explode, colors)
-- Box Plot (spread of marks per subject)
-- Multiple subplots on one figure
-- Customisations: titles, labels, colors, markers, linestyles, figsize, grid, legend
+100% Real-Time Database / CSV Driven:
+- Line Chart (Student's subject marks comparison across syllabus subjects)
+- Bar Chart (Vertical individual marks & horizontal toppers leaderboard)
+- Histogram (Actual class marks frequency distribution)
+- Scatter Plot (Physics vs Mathematics correlation from student records)
+- Box Plot (True subject-wise marks dispersion with Matplotlib 3.11+ compatibility)
+- Pie Chart (Real-time pass / compartment / fail and fees status breakdown)
+- Multiple subplots on one figure (2x2 dashboard strictly generated from live data)
 """
 
 import matplotlib.pyplot as plt
@@ -72,61 +71,67 @@ def plot_student_marks(roll_no):
     return True
 
 
-# ── 2. Line Chart: Student Academic Growth / Progress ───────────────────────
+# ── 2. Line Chart: Student Subject Scores Profile ───────────────────────────
 
 def plot_progress_line_chart(roll_no="101"):
     """
-    Line Chart showing simulated term progression (Unit Test 1, Half Yearly, Pre-Board, Final).
-    Covers: Line chart, markers, linestyles, multiple lines, legend, grid.
+    Line Chart displaying a student's actual scores across subjects compared with class average.
+    100% sourced from real database records.
     """
     res = database.get_result(roll_no)
-    name = res["student"]["name"] if res else f"Roll {roll_no}"
+    if not res or not res.get("has_marks"):
+        print(f"\n[!] Cannot plot: No marks found for Roll Number '{roll_no}'.")
+        return False
 
-    terms = ["Unit Test 1", "Unit Test 2", "Half Yearly", "Pre-Board", "Final Board"]
-    # Simulated historical progression based on final scores
-    phy = [65, 72, 78, 82, 88]
-    math = [70, 75, 84, 90, 95]
-    cs = [80, 82, 89, 92, 96]
+    student_name = res["student"]["name"]
+    subjects = ["Physics", "Chemistry", "Maths", "English", "CS/IP"]
+    keys = ["physics", "chemistry", "maths", "english", "cs_ip"]
+    student_scores = [res["marks"].get(k, 0) for k in keys]
+
+    # Calculate real class averages
+    df = data_analysis.get_current_df()
+    col_map = {"physics": "Physics", "chemistry": "Chemistry", "maths": "Maths", "english": "English", "cs_ip": "CS_IP"}
+    class_avgs = [round(df[col_map[k]].mean(), 1) if col_map[k] in df.columns else 0 for k in keys]
 
     plt.figure(figsize=(9, 5))
-    plt.plot(terms, phy, marker='o', markersize=8, color='#e67e22', linestyle='-', linewidth=2, label='Physics')
-    plt.plot(terms, math, marker='s', markersize=8, color='#2980b9', linestyle='--', linewidth=2, label='Mathematics')
-    plt.plot(terms, cs, marker='^', markersize=8, color='#27ae60', linestyle='-.', linewidth=2, label='Computer Science / IP')
+    plt.plot(subjects, student_scores, marker='o', markersize=9, color='#2980b9', linestyle='-', linewidth=2.5, label=f'{student_name} Scores')
+    plt.plot(subjects, class_avgs, marker='s', markersize=8, color='#e67e22', linestyle='--', linewidth=2, label='Class Average Score')
 
-    plt.title(f"Academic Term-Wise Progress Line Chart — {name}", fontsize=13, fontweight='bold', pad=15)
-    plt.xlabel("Examination Terms", fontsize=11, fontweight='bold')
-    plt.ylabel("Marks Scored (out of 100)", fontsize=11, fontweight='bold')
-    plt.ylim(50, 105)
+    plt.title(f"Subject Score Profile vs Class Average — {student_name} ({roll_no})", fontsize=13, fontweight='bold', pad=15)
+    plt.xlabel("Board Subjects", fontsize=11, fontweight='bold')
+    plt.ylabel("Marks Obtained (Max 100)", fontsize=11, fontweight='bold')
+    plt.ylim(0, 110)
     plt.grid(True, linestyle=':', alpha=0.6)
     plt.legend(loc='lower right')
+
+    for i, txt in enumerate(student_scores):
+        plt.annotate(f"{int(txt)}", (subjects[i], student_scores[i] + 2), fontweight='bold', ha='center')
+
     plt.tight_layout()
     plt.show()
+    return True
 
 
 # ── 3. Histogram: Marks Frequency Distribution ──────────────────────────────
 
 def plot_marks_histogram():
     """
-    Histogram showing distribution of overall percentages in class.
-    Covers: hist(), bins, range, edgecolor, color, density.
+    Histogram showing actual distribution of student percentages stored in database.
+    Strictly uses real dataset without any synthetic score injection.
     """
     df = data_analysis.get_current_df()
     scores = df["Percentage"].dropna().tolist()
 
     if not scores:
-        print("\n[!] No percentage data available to plot histogram.")
+        print("\n[!] No student percentage records available to plot histogram.")
         return False
-
-    # Supplement sample values if small dataset
-    if len(scores) < 10:
-        scores.extend([62, 74, 88, 91, 55, 68, 79, 83, 94, 71, 85, 90, 48, 59, 77])
 
     bins = [30, 40, 50, 60, 70, 80, 90, 100]
 
     plt.figure(figsize=(9, 5))
     n, actual_bins, patches = plt.hist(scores, bins=bins, color='#3498db', edgecolor='black', linewidth=1.2, rwidth=0.85)
 
-    plt.title(f"Class Marks Frequency Distribution Histogram (Total: {len(scores)} students)", fontsize=13, fontweight='bold', pad=15)
+    plt.title(f"Class Percentage Frequency Distribution Histogram (Live Evaluated: {len(scores)} students)", fontsize=13, fontweight='bold', pad=15)
     plt.xlabel("Score Range (Percentage Bins)", fontsize=11, fontweight='bold')
     plt.ylabel("Number of Students", fontsize=11, fontweight='bold')
     plt.xticks(bins)
@@ -135,7 +140,7 @@ def plot_marks_histogram():
     for i in range(len(patches)):
         h = patches[i].get_height()
         if h > 0:
-            plt.text(patches[i].get_x() + patches[i].get_width() / 2., h + 0.1, f"{int(h)}", ha='center', va='bottom', fontweight='bold')
+            plt.text(patches[i].get_x() + patches[i].get_width() / 2., h + 0.05, f"{int(h)}", ha='center', va='bottom', fontweight='bold')
 
     plt.tight_layout()
     plt.show()
@@ -146,98 +151,116 @@ def plot_marks_histogram():
 
 def plot_scatter_correlation():
     """
-    Scatter Plot showing correlation between two subject scores.
-    Covers: scatter(), marker, color, s (marker size), alpha.
+    Scatter Plot showing correlation between Physics and Mathematics marks from database.
+    Strictly plots actual records.
     """
     df = data_analysis.get_current_df()
-    phy = df["Physics"].dropna().tolist()
-    math = df["Maths"].dropna().tolist()
+    valid = df.dropna(subset=["Physics", "Maths"])
 
-    if len(phy) < 5:
-        phy.extend([65, 78, 88, 92, 55, 74, 82, 90, 68, 85])
-        math.extend([60, 82, 85, 95, 50, 70, 80, 96, 64, 89])
+    if valid.empty:
+        print("\n[!] No students with both Physics and Maths marks found.")
+        return False
+
+    phy = valid["Physics"].tolist()
+    math = valid["Maths"].tolist()
+    names = valid["Name"].tolist()
 
     plt.figure(figsize=(8, 5))
-    plt.scatter(phy, math, color='#e74c3c', s=80, marker='D', edgecolors='black', alpha=0.8, label='Student Scores')
+    plt.scatter(phy, math, color='#e74c3c', s=100, marker='D', edgecolors='black', alpha=0.85, label='Student Scores')
 
-    plt.title("Correlation Analysis: Physics vs Mathematics Marks", fontsize=13, fontweight='bold', pad=15)
+    # Annotate names
+    for i, name in enumerate(names):
+        plt.annotate(f"{name}", (phy[i] + 0.8, math[i] + 0.8), fontsize=9)
+
+    plt.title(f"Correlation Analysis: Physics vs Mathematics (Live: {len(valid)} students)", fontsize=13, fontweight='bold', pad=15)
     plt.xlabel("Physics Marks", fontsize=11, fontweight='bold')
     plt.ylabel("Mathematics Marks", fontsize=11, fontweight='bold')
-    plt.xlim(40, 105)
-    plt.ylim(40, 105)
+    plt.xlim(min(phy) - 10, 105)
+    plt.ylim(min(math) - 10, 105)
     plt.grid(True, linestyle='--', alpha=0.5)
     plt.legend()
     plt.tight_layout()
     plt.show()
+    return True
 
 
-# ── 5. Box Plot: Subject-Wise Marks Spread ───────────────────────────────────
+# ── 5. Box Plot: Subject-Wise Marks Spread (Matplotlib Compatible) ───────────
 
 def plot_subject_boxplot():
     """
-    Box Plot showing median, quartiles, and range of marks per subject.
-    Covers: boxplot(), patch_artist, vert, medianprops, boxprops.
+    Box Plot showing median, quartiles, and dispersion of real marks per subject.
+    Supports both older and newer Matplotlib versions (tick_labels / labels argument).
     """
     df = data_analysis.get_current_df()
     subjects = ["Physics", "Chemistry", "Maths", "English", "CS_IP"]
 
     data_to_plot = []
-    # Seed with representative data if small
-    sample_pool = {
-        "Physics": [65, 75, 88, 92, 78, 84, 70, 90],
-        "Chemistry": [70, 80, 85, 92, 75, 88, 68, 82],
-        "Maths": [58, 72, 85, 95, 78, 90, 64, 89],
-        "English": [75, 82, 85, 90, 88, 92, 80, 86],
-        "CS_IP": [80, 85, 92, 96, 88, 95, 84, 91]
-    }
+    active_subjects = []
 
     for sub in subjects:
-        vals = df[sub].dropna().tolist() if sub in df.columns else []
-        if len(vals) < 5:
-            vals = sample_pool[sub]
-        data_to_plot.append(vals)
+        if sub in df.columns:
+            vals = df[sub].dropna().tolist()
+            if vals:
+                data_to_plot.append(vals)
+                active_subjects.append(sub)
+
+    if not data_to_plot:
+        print("\n[!] No subject marks found to plot box plot.")
+        return False
 
     plt.figure(figsize=(9, 5))
-    bp = plt.boxplot(data_to_plot, labels=subjects, patch_artist=True,
-                     boxprops=dict(facecolor='#aed6f1', color='#1b4f72', linewidth=1.5),
-                     medianprops=dict(color='#c0392b', linewidth=2),
-                     whiskerprops=dict(color='#1b4f72', linewidth=1.5),
-                     capprops=dict(color='#1b4f72', linewidth=1.5))
 
-    plt.title("Subject Marks Spread & Dispersion (Box Plot)", fontsize=13, fontweight='bold', pad=15)
+    # Compatibility check for Matplotlib versions (3.9+ uses tick_labels, older uses labels)
+    boxplot_kwargs = dict(
+        patch_artist=True,
+        boxprops=dict(facecolor='#aed6f1', color='#1b4f72', linewidth=1.5),
+        medianprops=dict(color='#c0392b', linewidth=2),
+        whiskerprops=dict(color='#1b4f72', linewidth=1.5),
+        capprops=dict(color='#1b4f72', linewidth=1.5)
+    )
+
+    try:
+        bp = plt.boxplot(data_to_plot, tick_labels=active_subjects, **boxplot_kwargs)
+    except TypeError:
+        bp = plt.boxplot(data_to_plot, labels=active_subjects, **boxplot_kwargs)
+
+    plt.title("Subject Marks Spread & Dispersion (Box Plot - Live Database)", fontsize=13, fontweight='bold', pad=15)
     plt.xlabel("Subjects", fontsize=11, fontweight='bold')
     plt.ylabel("Marks Range (0-100)", fontsize=11, fontweight='bold')
-    plt.ylim(40, 105)
+    plt.ylim(30, 105)
     plt.grid(axis='y', linestyle='--', alpha=0.5)
     plt.tight_layout()
     plt.show()
+    return True
 
 
 # ── 6. Pie Chart: Result & Grade Breakdown ───────────────────────────────────
 
 def plot_result_distribution():
     """
-    Pie Chart showing percentage of Passed, Compartment, and Failed students.
-    Covers: pie(), autopct, explode, colors, shadow, startangle.
+    Pie Chart showing percentage of Passed, Compartment, and Failed students from live DB.
     """
     df = data_analysis.get_current_df()
-    status_counts = df["Status"].value_counts().to_dict()
+    status_counts = df["Status"].dropna().value_counts().to_dict()
 
-    if not status_counts or all(v == 0 for v in status_counts.values()):
-        status_counts = {"PASSED": 18, "COMPARTMENT": 3, "FAILED": 1}
+    if not status_counts:
+        print("\n[!] No evaluated results found.")
+        return False
 
     labels = list(status_counts.keys())
     sizes = list(status_counts.values())
-    colors = ['#2ecc71', '#f39c12', '#e74c3c'][:len(labels)]
+    color_map = {"PASSED": "#2ecc71", "COMPARTMENT": "#f39c12", "FAILED": "#e74c3c"}
+    colors = [color_map.get(l, "#3498db") for l in labels]
     explode = [0.05 if l == "PASSED" else 0.0 for l in labels]
 
     plt.figure(figsize=(6, 6))
     plt.pie(sizes, explode=explode, labels=labels, autopct='%1.1f%%', colors=colors,
             startangle=140, shadow=True, textprops={'fontsize': 11, 'fontweight': 'bold'},
             wedgeprops={'edgecolor': 'black', 'linewidth': 1})
-    plt.title(f"Class Result Distribution (Total: {sum(sizes)})", fontsize=13, fontweight='bold', pad=20)
+    plt.title(f"Class Result Distribution (Total Evaluated: {sum(sizes)})", fontsize=13, fontweight='bold', pad=20)
     plt.tight_layout()
     plt.show()
+    return True
 
 
 # ── 7. Multiple Plots (Subplots: 2x2 Dashboard) ──────────────────────────────
@@ -245,47 +268,58 @@ def plot_result_distribution():
 def plot_multiple_dashboard():
     """
     Multiple Plots using plt.subplots(2, 2).
-    Demonstrates: subplot creation, shared formatting, diverse chart types in one figure.
+    100% strictly computed from current database DataFrame.
     """
     df = data_analysis.get_current_df()
     fig, axes = plt.subplots(2, 2, figsize=(12, 8))
 
-    # 1. Bar Chart: Subject Averages (Top-Left)
+    # 1. Bar Chart: Real Subject Averages (Top-Left)
     subs = ["Phy", "Chem", "Math", "Eng", "CS"]
     sub_keys = ["Physics", "Chemistry", "Maths", "English", "CS_IP"]
-    avgs = [df[k].mean() if k in df.columns and not np.isnan(df[k].mean()) else 80 for k in sub_keys]
+    avgs = [round(df[k].mean(), 1) if k in df.columns and not np.isnan(df[k].mean()) else 0 for k in sub_keys]
     axes[0, 0].bar(subs, avgs, color='#3498db', edgecolor='black')
-    axes[0, 0].set_title("1. Subject Averages", fontweight='bold')
-    axes[0, 0].set_ylim(0, 100)
+    axes[0, 0].set_title("1. Live Subject Averages", fontweight='bold')
+    axes[0, 0].set_ylim(0, 105)
     axes[0, 0].grid(axis='y', linestyle=':')
+    for i, v in enumerate(avgs):
+        axes[0, 0].text(i, v + 2, f"{v}", ha='center', fontweight='bold', fontsize=9)
 
-    # 2. Line Chart: Sample Progress (Top-Right)
-    terms = ["UT1", "UT2", "HalfYr", "PreB", "Final"]
-    score_trend = [68, 74, 82, 89, 93]
-    axes[0, 1].plot(terms, score_trend, marker='o', color='#e67e22', linewidth=2)
-    axes[0, 1].set_title("2. Top Performer Progress Trend", fontweight='bold')
-    axes[0, 1].set_ylim(50, 100)
+    # 2. Line Chart: Live Class Average vs Highest Scores (Top-Right)
+    highest_scores = [df[k].max() if k in df.columns and not np.isnan(df[k].max()) else 0 for k in sub_keys]
+    axes[0, 1].plot(subs, highest_scores, marker='o', color='#27ae60', linewidth=2, label='Highest Score')
+    axes[0, 1].plot(subs, avgs, marker='s', color='#e67e22', linewidth=2, linestyle='--', label='Average Score')
+    axes[0, 1].set_title("2. Benchmark: Max vs Average Marks", fontweight='bold')
+    axes[0, 1].set_ylim(40, 105)
     axes[0, 1].grid(True, linestyle=':')
+    axes[0, 1].legend(loc='lower right')
 
-    # 3. Pie Chart: Gender Distribution (Bottom-Left)
-    g_counts = df["Gender"].value_counts().to_dict() if "Gender" in df.columns else {"Male": 15, "Female": 12}
-    axes[1, 0].pie(list(g_counts.values()), labels=list(g_counts.keys()), autopct='%1.0f%%', colors=['#2980b9', '#e84393'])
-    axes[1, 0].set_title("3. Gender Demographics", fontweight='bold')
+    # 3. Pie Chart: Live Gender Distribution (Bottom-Left)
+    g_counts = df["Gender"].dropna().value_counts().to_dict()
+    if g_counts:
+        axes[1, 0].pie(list(g_counts.values()), labels=list(g_counts.keys()), autopct='%1.0f%%', colors=['#2980b9', '#e84393'])
+    axes[1, 0].set_title("3. Student Gender Demographics", fontweight='bold')
 
-    # 4. Horizontal Bar: Top 3 Students (Bottom-Right)
-    names = ["Aarav (101)", "Diya (102)", "Rohan (103)"]
-    percents = [91.2, 81.4, 75.0]
-    axes[1, 1].barh(names, percents, color='#2ecc71', edgecolor='black')
-    axes[1, 1].set_title("4. Top Ranked Students", fontweight='bold')
-    axes[1, 1].set_xlim(0, 100)
+    # 4. Horizontal Bar: Real Top 3 Students from Database (Bottom-Right)
+    toppers = df.dropna(subset=["Percentage"]).sort_values(by="Percentage", ascending=False).head(3)
+    if not toppers.empty:
+        t_names = (toppers["Name"] + " (" + toppers["RollNo"].astype(str) + ")").tolist()
+        t_pct = toppers["Percentage"].tolist()
+        t_names.reverse()
+        t_pct.reverse()
+        bars = axes[1, 1].barh(t_names, t_pct, color='#2ecc71', edgecolor='black')
+        axes[1, 1].set_xlim(0, 105)
+        for b in bars:
+            axes[1, 1].text(b.get_width() + 1, b.get_y() + b.get_height() / 2, f"{b.get_width()}%", va='center', fontweight='bold')
+    axes[1, 1].set_title("4. Top Ranked Students (Live DB)", fontweight='bold')
     axes[1, 1].grid(axis='x', linestyle=':')
 
-    fig.suptitle("CBSE Class 12 IP — Comprehensive Analytics Dashboard (Multiple Subplots)", fontsize=14, fontweight='bold')
+    fig.suptitle("CBSE Class 12 IP — Comprehensive Analytics Dashboard (100% Real-Time)", fontsize=14, fontweight='bold')
     plt.tight_layout()
     plt.show()
+    return True
 
 
-# ── 8. Existing Quick Charts ────────────────────────────────────────────────
+# ── 8. Real-time Leaderboard & Fees Charts ──────────────────────────────────
 
 def plot_subject_averages():
     df = data_analysis.get_current_df()
@@ -295,7 +329,7 @@ def plot_subject_averages():
     plt.figure(figsize=(8, 5))
     bars = plt.bar(subjects, avg_values, color='#3498db', width=0.5, edgecolor='#1b4f72', linewidth=1)
     plt.ylim(0, 105)
-    plt.title("Class Subject-Wise Average Performance", fontsize=12, fontweight='bold', pad=15)
+    plt.title("Class Subject-Wise Average Performance (Real-Time)", fontsize=12, fontweight='bold', pad=15)
     plt.xlabel("Subject", fontsize=11, fontweight='bold')
     plt.ylabel("Average Marks", fontsize=11, fontweight='bold')
     plt.grid(axis='y', linestyle='--', alpha=0.5)
@@ -323,7 +357,7 @@ def plot_toppers(top_n=5):
     plt.figure(figsize=(9, 5))
     bars = plt.barh(names, percentages, color='#2ecc71', edgecolor='#196f3d', height=0.55)
     plt.xlim(0, 110)
-    plt.title(f"Top {len(names)} Students Leaderboard (By Percentage)", fontsize=12, fontweight='bold', pad=15)
+    plt.title(f"Top {len(names)} Students Leaderboard (Live Database)", fontsize=12, fontweight='bold', pad=15)
     plt.xlabel("Percentage (%)", fontsize=11, fontweight='bold')
     plt.grid(axis='x', linestyle='--', alpha=0.5)
 
@@ -350,6 +384,6 @@ def plot_fees_distribution():
     plt.pie(sizes, labels=labels, autopct='%1.1f%%', colors=colors, startangle=90,
             textprops={'fontsize': 11, 'fontweight': 'bold'},
             wedgeprops={'edgecolor': 'black', 'linewidth': 1})
-    plt.title("Fees Status Overview", fontsize=13, fontweight='bold', pad=20)
+    plt.title("Fees Status Overview (Live Database)", fontsize=13, fontweight='bold', pad=20)
     plt.tight_layout()
     plt.show()

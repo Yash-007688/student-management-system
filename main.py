@@ -7,7 +7,7 @@ Complete Integration of:
 2. Pandas Data Analysis & CSV Transfer (data_analysis.py)
 3. Matplotlib PyPlot Visualisation (charts.py)
 4. Theoretical / Viva Quick Guide (viva_theory.py)
-5. Role-based Authentication (ADMIN / TEACHER / STUDENT)
+5. Role-based Authentication with strict access control (ADMIN / TEACHER / STUDENT)
 """
 
 import sys
@@ -86,7 +86,7 @@ def handle_add_student():
 
 
 def handle_view_all_students():
-    print_header("All Registered Students")
+    print_header("Student Records View")
     students = database.get_all_students()
     headers = ["Roll No", "Name", "Class", "Sec", "Gender", "Phone", "Email"]
     rows = [
@@ -94,7 +94,7 @@ def handle_view_all_students():
         for s in students
     ]
     print_table(headers, rows)
-    print(f"Total Students: {len(students)}")
+    print(f"Total Visible Records: {len(students)}")
 
 
 def handle_search_student():
@@ -124,6 +124,14 @@ def handle_search_student():
 def handle_update_student():
     print_header("Update Student Details")
     roll_no = input("Enter Roll Number to update: ").strip()
+
+    # Pre-check permission for current user
+    if database.get_session()["role"] == "TEACHER":
+        allowed, msg = database.check_teacher_scope(roll_no)
+        if not allowed:
+            print(f"\n[!] {msg}")
+            return
+
     student = database.get_student_by_roll(roll_no)
     if not student:
         print(f"[!] No student found with Roll Number '{roll_no}'.")
@@ -182,6 +190,14 @@ def handle_delete_student():
 def handle_marks_entry():
     print_header("Marks Entry")
     roll_no = input("Enter Student Roll Number: ").strip()
+
+    # Pre-check permission for current user
+    if database.get_session()["role"] == "TEACHER":
+        allowed, msg = database.check_teacher_scope(roll_no)
+        if not allowed:
+            print(f"\n[!] {msg}")
+            return
+
     student = database.get_student_by_roll(roll_no)
     if not student:
         print(f"[!] No student found with Roll Number '{roll_no}'.")
@@ -223,9 +239,16 @@ def handle_marks_entry():
 def handle_view_result():
     print_header("Student Result & Report Card")
     roll_no = input("Enter Student Roll Number: ").strip()
+
+    if database.get_session()["role"] == "TEACHER":
+        allowed, msg = database.check_teacher_scope(roll_no)
+        if not allowed:
+            print(f"\n[!] {msg}")
+            return
+
     res = database.get_result(roll_no)
     if not res:
-        print(f"[!] No student record found for '{roll_no}'.")
+        print(f"[!] Access Denied or No student record found for '{roll_no}'.")
         return
 
     student = res["student"]
@@ -273,7 +296,7 @@ def handle_fees_management():
             records = database.get_all_fees()
             headers = ["Roll No", "Student Name", "Class", "Total Fees", "Paid", "Pending", "Status"]
             rows = [
-                [f["roll_no"], f["name"], f"{f['class']}-{f['section']}", f"Rs.{f['total_fees']}", f"Rs.{f['paid']}", f"Rs.{f['pending']}", f["status"]]
+                [f["roll_no"], f.get("name", "N/A"), f"{f.get('class', '')}-{f.get('section', '')}", f"Rs.{f['total_fees']}", f"Rs.{f['paid']}", f"Rs.{f['pending']}", f["status"]]
                 for f in records
             ]
             print_table(headers, rows)
@@ -281,9 +304,9 @@ def handle_fees_management():
             roll = input("Enter Roll Number: ").strip()
             f = database.get_fees_by_roll(roll)
             if not f:
-                print(f"[!] No fee record for '{roll}'.")
+                print(f"[!] No fee record found for '{roll}'.")
             else:
-                print(f"\nFee details for {f['name']} ({roll}):")
+                print(f"\nFee details for {f.get('name', 'Student')} ({roll}):")
                 print(f"Total Fees : Rs. {f['total_fees']}")
                 print(f"Paid       : Rs. {f['paid']}")
                 print(f"Pending    : Rs. {f['pending']}")
@@ -300,7 +323,7 @@ def handle_fees_management():
                 else:
                     print(f"\n[!] Error: {msg}")
             except ValueError:
-                print("[!] Invalid amount entered.")
+                print("[!] Invalid amount entered. Must be a numeric value.")
         elif choice == "4":
             charts.plot_fees_distribution()
         elif choice == "5":
@@ -309,7 +332,71 @@ def handle_fees_management():
             print("[!] Invalid option.")
 
 
-# ── 4. Pandas Data Analysis Hub (Class 12 IP Syllabus) ──────────────────────
+# ── 4. User Account Management (Admin Exclusive) ────────────────────────────
+
+def handle_user_management():
+    while True:
+        print_header("User Account Administration")
+        print("1. View All Registered User Accounts")
+        print("2. Create New User Account (Admin / Teacher / Student)")
+        print("3. Delete User Account")
+        print("4. Back to Admin Dashboard")
+        ch = input("\nSelect User Option (1-4): ").strip()
+
+        if ch == "1":
+            users = database.get_all_users()
+            headers = ["ID", "Username", "Role", "Display Name", "Linked Roll", "Class-Sec"]
+            rows = [
+                [u["id"], u["username"], u["role"], u["display_name"], u["linked_roll_no"] or "-", f"{u.get('assigned_class') or ''}-{u.get('assigned_section') or ''}".strip("-") or "-"]
+                for u in users
+            ]
+            print_table(headers, rows)
+            print(f"Total Registered Accounts: {len(users)}")
+
+        elif ch == "2":
+            uname = input("Enter Username       : ").strip()
+            pwd = input("Enter Password       : ").strip()
+            print("Select Role: 1. ADMIN  2. TEACHER  3. STUDENT")
+            r_ch = input("Role choice (1-3)    : ").strip()
+            role_map = {"1": "ADMIN", "2": "TEACHER", "3": "STUDENT"}
+            role = role_map.get(r_ch, "STUDENT")
+            dname = input("Enter Display Name   : ").strip()
+
+            linked_roll = None
+            assigned_cls = None
+            assigned_sec = None
+
+            if role == "STUDENT":
+                linked_roll = input("Enter Linked Roll No : ").strip()
+            elif role == "TEACHER":
+                assigned_cls = input("Assigned Class (e.g. 12): ").strip()
+                assigned_sec = input("Assigned Section (e.g. A): ").strip().upper()
+
+            ok, msg = database.add_user(uname, pwd, role, dname, linked_roll, assigned_cls, assigned_sec)
+            if ok:
+                print(f"\n[+] Success: {msg}")
+            else:
+                print(f"\n[!] Error: {msg}")
+
+        elif ch == "3":
+            uname = input("Enter Username to Delete: ").strip()
+            confirm = input(f"Confirm deleting account '{uname}'? (yes/no): ").strip().lower()
+            if confirm in ["yes", "y"]:
+                ok, msg = database.delete_user(uname)
+                if ok:
+                    print(f"\n[+] Success: {msg}")
+                else:
+                    print(f"\n[!] Error: {msg}")
+            else:
+                print("[-] Deletion cancelled.")
+
+        elif ch == "4":
+            break
+        else:
+            print("[!] Invalid option.")
+
+
+# ── 5. Pandas Data Analysis Hub (Class 12 IP Syllabus) ──────────────────────
 
 def handle_pandas_data_analysis_menu():
     while True:
@@ -351,13 +438,13 @@ def handle_pandas_data_analysis_menu():
             print("[!] Invalid option.")
 
 
-# ── 5. Matplotlib PyPlot Visualisation Hub (All IP Chart Types) ──────────────
+# ── 6. Matplotlib PyPlot Visualisation Hub (All IP Chart Types) ──────────────
 
 def handle_visual_analytics_menu():
     while True:
-        print_header("Matplotlib PyPlot Data Visualisation (CBSE IP)")
+        print_header("Matplotlib PyPlot Data Visualisation (100% Real-Time)")
         print("1. 📊 Bar Chart: Individual Student Subject Marks")
-        print("2. 📈 Line Chart: Student Academic Growth & Term Progress")
+        print("2. 📈 Line Chart: Student Subject Scores Profile vs Class Avg")
         print("3. 📊 Histogram: Class Marks Frequency Distribution")
         print("4. 💠 Scatter Plot: Physics vs Mathematics Score Correlation")
         print("5. 📦 Box Plot: Subject-Wise Marks Spread & Dispersion")
@@ -394,7 +481,7 @@ def handle_visual_analytics_menu():
             print("[!] Invalid choice.")
 
 
-# ── 6. Role-based Dashboards ────────────────────────────────────────────────
+# ── 7. Role-based Dashboards ────────────────────────────────────────────────
 
 def admin_dashboard(user):
     while True:
@@ -407,13 +494,14 @@ def admin_dashboard(user):
         print("6.  📊 Marks Entry")
         print("7.  📋 View Result / Report Card")
         print("8.  💰 Fees Management")
-        print("9.  🐼 Pandas Data Analysis (Class 12 IP Syllabus)")
-        print("10. 📈 PyPlot Visualisation Hub (Line/Bar/Hist/Scatter/Box/Pie)")
-        print("11. 🗄️  SQL & MySQL Operations Demo (DDL/DML/Aggregate/Pandas read_sql)")
-        print("12. 📚 CBSE Class 12 IP Viva & Theory Guide (Networks/Cyber/DBMS)")
-        print("13. 🚪 Logout")
+        print("9.  👥 User Account Administration (Create/Delete Accounts)")
+        print("10. 🐼 Pandas Data Analysis (Class 12 IP Syllabus)")
+        print("11. 📈 PyPlot Visualisation Hub (Line/Bar/Hist/Scatter/Box/Pie)")
+        print("12. 🗄️  SQL & MySQL Operations Demo (DDL/DML/Aggregate/Pandas read_sql)")
+        print("13. 📚 CBSE Class 12 IP Viva & Theory Guide (Networks/Cyber/DBMS)")
+        print("14. 🚪 Logout")
         
-        choice = input("\nEnter choice (1-13): ").strip()
+        choice = input("\nEnter choice (1-14): ").strip()
         if choice == "1":
             handle_view_all_students()
         elif choice == "2":
@@ -431,19 +519,21 @@ def admin_dashboard(user):
         elif choice == "8":
             handle_fees_management()
         elif choice == "9":
-            handle_pandas_data_analysis_menu()
+            handle_user_management()
         elif choice == "10":
-            handle_visual_analytics_menu()
+            handle_pandas_data_analysis_menu()
         elif choice == "11":
-            mysql_manager.demonstrate_sql_queries()
+            handle_visual_analytics_menu()
         elif choice == "12":
-            viva_theory.show_viva_menu()
+            mysql_manager.demonstrate_sql_queries()
         elif choice == "13":
+            viva_theory.show_viva_menu()
+        elif choice == "14":
             database.clear_session()
             print("\n[+] Logged out successfully.")
             break
         else:
-            print("[!] Invalid selection. Please choose 1-13.")
+            print("[!] Invalid selection. Please choose 1-14.")
 
 
 def teacher_dashboard(user):
@@ -451,10 +541,10 @@ def teacher_dashboard(user):
     assigned_sec = user.get("assigned_section", "A")
     while True:
         print_header(f"Teacher Dashboard — {user['display_name']} (Class {assigned_cls}-{assigned_sec})")
-        print("1. 👨‍🎓 View Students in My Class")
-        print("2. 🔍 Search Student")
-        print("3. 📊 Enter / Update Marks")
-        print("4. 📋 View Student Result")
+        print("1. 👨‍🎓 View Students in My Assigned Class")
+        print("2. 🔍 Search Student (Scoped to My Class)")
+        print("3. 📊 Enter / Update Marks (Scoped to My Class)")
+        print("4. 📋 View Student Result (Scoped to My Class)")
         print("5. 🐼 Pandas Class Data Analysis")
         print("6. 📈 Matplotlib Visualizations")
         print("7. 📚 IP Viva Theory Guide")
@@ -466,6 +556,7 @@ def teacher_dashboard(user):
             headers = ["Roll No", "Name", "Class", "Sec", "Gender", "Phone"]
             rows = [[s["roll_no"], s["name"], s["class"], s["section"], s["gender"], s["phone"]] for s in students]
             print_table(headers, rows)
+            print(f"Total students in Class {assigned_cls}-{assigned_sec}: {len(students)}")
         elif choice == "2":
             handle_search_student()
         elif choice == "3":
@@ -545,7 +636,7 @@ def student_dashboard(user):
                 print(f"Last Payment: {f['last_payment']}")
                 print("=" * 40)
             else:
-                print("\n[!] Fee details not found.")
+                print("\n[!] Fee details not found or access restricted.")
         elif choice == "5":
             viva_theory.show_viva_menu()
         elif choice == "6":
@@ -587,7 +678,7 @@ def main():
                 else:
                     print(f"[!] Unknown role: {role}")
             else:
-                print("\n[!] Invalid credentials. Try demo: admin / admin123")
+                print("\n[!] Invalid credentials. Check credentials list.")
         elif choice == "2":
             viva_theory.show_viva_menu()
         elif choice == "3":
