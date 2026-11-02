@@ -504,9 +504,12 @@ def get_all_fees():
 
 def get_fees_by_roll(roll_no):
     conn = _get_conn()
-    row = conn.execute(
-        "SELECT * FROM fees WHERE roll_no=?", (str(roll_no).strip(),)
-    ).fetchone()
+    row = conn.execute("""
+        SELECT f.*, s.name, s.class, s.section
+        FROM fees f
+        LEFT JOIN students s ON f.roll_no = s.roll_no
+        WHERE f.roll_no=?
+    """, (str(roll_no).strip(),)).fetchone()
     conn.close()
     return dict(row) if row else None
 
