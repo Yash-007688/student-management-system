@@ -3,19 +3,16 @@ main.py
 -------
 Student Management System — CBSE Class 12 Informatics Practices (IP) Project.
 Complete Integration of:
-1. Python + SQL Connectivity (mysql_manager.py & database.py)
+1. Python + SQL Connectivity (database.py)
 2. Pandas Data Analysis & CSV Transfer (data_analysis.py)
 3. Matplotlib PyPlot Visualisation (charts.py)
-4. Theoretical / Viva Quick Guide (viva_theory.py)
-5. Role-based Authentication with strict access control (ADMIN / TEACHER / STUDENT)
+4. Role-based Authentication with strict access control (ADMIN / TEACHER / STUDENT)
 """
 
 import sys
 import database
 import charts
 import data_analysis
-import mysql_manager
-import viva_theory
 
 
 # ── Utility Formatting Helpers ──────────────────────────────────────────────
@@ -515,11 +512,9 @@ def admin_dashboard(user):
         print("9.  👥 User Account Administration (Create/Delete Accounts)")
         print("10. 🐼 Pandas Data Analysis (Class 12 IP Syllabus)")
         print("11. 📈 PyPlot Visualisation Hub (Line/Bar/Hist/Scatter/Box/Pie)")
-        print("12. 🗄️  SQL & MySQL Operations Demo (DDL/DML/Aggregate/Pandas read_sql)")
-        print("13. 📚 CBSE Class 12 IP Viva & Theory Guide (Networks/Cyber/DBMS)")
-        print("14. 🚪 Logout")
+        print("12. 🚪 Logout")
         
-        choice = input("\nEnter choice (1-14): ").strip()
+        choice = input("\nEnter choice (1-12): ").strip()
         if choice == "1":
             handle_view_all_students()
         elif choice == "2":
@@ -543,15 +538,11 @@ def admin_dashboard(user):
         elif choice == "11":
             handle_visual_analytics_menu()
         elif choice == "12":
-            mysql_manager.demonstrate_sql_queries()
-        elif choice == "13":
-            viva_theory.show_viva_menu()
-        elif choice == "14":
             database.clear_session()
             print("\n[+] Logged out successfully.")
             break
         else:
-            print("[!] Invalid selection. Please choose 1-14.")
+            print("[!] Invalid selection. Please choose 1-12.")
 
 
 def teacher_dashboard(user):
@@ -565,10 +556,9 @@ def teacher_dashboard(user):
         print("4. 📋 View Student Result (Scoped to My Class)")
         print("5. 🐼 Pandas Class Data Analysis")
         print("6. 📈 Matplotlib Visualizations")
-        print("7. 📚 IP Viva Theory Guide")
-        print("8. 🚪 Logout")
+        print("7. 🚪 Logout")
 
-        choice = input("\nEnter choice (1-8): ").strip()
+        choice = input("\nEnter choice (1-7): ").strip()
         if choice == "1":
             students = database.get_students_by_class(assigned_cls, assigned_sec)
             headers = ["Roll No", "Name", "Class", "Sec", "Gender", "Phone"]
@@ -586,8 +576,6 @@ def teacher_dashboard(user):
         elif choice == "6":
             handle_visual_analytics_menu()
         elif choice == "7":
-            viva_theory.show_viva_menu()
-        elif choice == "8":
             database.clear_session()
             print("\n[+] Logged out successfully.")
             break
@@ -603,10 +591,9 @@ def student_dashboard(user):
         print("2. 📋 View My Report Card / Results")
         print("3. 📊 View My Marks Chart (Pyplot)")
         print("4. 💰 View My Fees Status")
-        print("5. 📚 IP Viva Theory Revision")
-        print("6. 🚪 Logout")
+        print("5. 🚪 Logout")
 
-        choice = input("\nEnter choice (1-6): ").strip()
+        choice = input("\nEnter choice (1-5): ").strip()
         if choice == "1":
             s = database.get_student_by_roll(roll_no)
             if s:
@@ -656,8 +643,6 @@ def student_dashboard(user):
             else:
                 print("\n[!] Fee details not found or access restricted.")
         elif choice == "5":
-            viva_theory.show_viva_menu()
-        elif choice == "6":
             database.clear_session()
             print("\n[+] Logged out successfully.")
             break
@@ -674,10 +659,9 @@ def main():
     while True:
         print_header("STUDENT MANAGEMENT SYSTEM (CBSE CLASS 12 IP)")
         print("1. Login to Account")
-        print("2. 📚 Quick IP Viva & Theory Guide")
-        print("3. Exit Application")
+        print("2. Exit Application")
         
-        choice = input("\nEnter choice (1-3): ").strip()
+        choice = input("\nEnter choice (1-2): ").strip()
         if choice == "1":
             print("\n--- Login Screen ---")
             username = input("Username: ").strip()
@@ -698,12 +682,10 @@ def main():
             else:
                 print("\n[!] Invalid credentials. Check credentials list.")
         elif choice == "2":
-            viva_theory.show_viva_menu()
-        elif choice == "3":
-            print("\nThank you for using Student Management System. Best of luck for Viva!")
+            print("\nThank you for using Student Management System.")
             sys.exit(0)
         else:
-            print("[!] Invalid choice. Please enter 1, 2, or 3.")
+            print("[!] Invalid choice. Please enter 1 or 2.")
 
 
 if __name__ == "__main__":
