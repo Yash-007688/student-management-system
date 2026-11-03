@@ -81,6 +81,24 @@ def handle_add_student():
     if ok:
         print(f"\n[+] Success: {msg}")
         data_analysis.export_db_to_csv()
+
+        # ── Auto-generate student login account (password: firstname123) ──
+        first_name = name.split()[0].lower()  # e.g. "jai" from "Jai Sharma"
+        gen_password = f"{first_name}123"     # e.g. "jai123"
+        gen_username = first_name
+
+        ok2, msg2 = database.add_user(gen_username, gen_password, "STUDENT", name, roll_no, None, None)
+        if ok2:
+            print(f"[+] Student login account auto-created — Username: '{gen_username}'  Password: '{gen_password}'")
+        else:
+            # Username already taken — retry with roll number appended
+            gen_username = f"{first_name}{roll_no}"
+            ok3, msg3 = database.add_user(gen_username, gen_password, "STUDENT", name, roll_no, None, None)
+            if ok3:
+                print(f"[+] Student login account auto-created — Username: '{gen_username}'  Password: '{gen_password}'")
+            else:
+                print(f"[!] Student record saved, but login account could not be auto-created: {msg3}")
+                print(f"    You may create one manually via User Account Administration (Option 9).")
     else:
         print(f"\n[!] Error: {msg}")
 
